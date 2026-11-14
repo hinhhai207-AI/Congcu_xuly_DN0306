@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Công cụ Tính toán & Phân tích Xử phạt Thuế DN Trạng thái 03 & 06</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f1f5f9;
+      color: #0f172a;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    @media print {
+      body { background: #fff !important; }
+      .no-print { display: none !important; }
+      .print-full { width: 100% !important; max-width: 100% !important; box-shadow: none !important; border: none !important; }
+      .print-break { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white shadow-lg no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-xl bg-blue-600/30 border border-blue-400/30 flex items-center justify-center text-blue-300 text-xl shadow-inner">
+            <i class="fa-solid fa-scale-balanced"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-lg sm:text-xl font-bold tracking-tight">CÔNG CỤ DỰ KIẾN & PHÂN TÍCH XỬ PHẠT DN 03 / DN 06 </h1>
+              <span class="hidden sm:inline-block px-2 py-0.5 text-[11px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-400/30 rounded-full">Cập nhật NĐ 310/2025 & NĐ 02/2026 - (V.3.1)</span>
+            </div>
+            <p class="text-xs text-slate-300 mt-0.5">Theo Tài liệu hướng dẫn xử phạt VPHC của Cục Thuế (NĐ 125/2020, NĐ 310/2025, NĐ 129/2013, NĐ 02/2026, Luật QLT 2019 & 2025)</p>
+          </div>
+        </div>
+
+        <!-- Quick Presets -->
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs text-slate-400 font-medium mr-1">Tình huống mẫu:</span>
+          <button onclick="loadSampleCase(1)" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-file-invoice"></i> Mẫu 1: DN 03 (Cty A)
+          </button>
+          <button onclick="loadSampleCase(2)" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-building-circle-exclamation"></i> Mẫu 2: DN 06 (Cty B)
+          </button>
+          <button onclick="resetAll()" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-rotate-right"></i> Làm mới
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      <!-- LEFT COLUMN: INPUT CONFIGURATION (5 cols) -->
+      <div class="lg:col-span-5 space-y-5 no-print">
+
+        <!-- Card 1: Thông tin chung doanh nghiệp -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="bg-slate-50 px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
+            <h2 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <span class="w-6 h-6 rounded-md bg-blue-600 text-white text-xs flex items-center justify-center font-bold">1</span>
+              THÔNG TIN DOANH NGHIỆP & MỐC THỜI GIAN
+            </h2>
+            <span id="statusBadge" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-amber-100 text-amber-800">Trạng thái 06</span>
+          </div>
+
+          <div class="p-5 space-y-4">
+            <!-- Trạng thái MST -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Trạng thái Mã số thuế hiện tại</label>
+              <div class="grid grid-cols-2 gap-3">
+                <label id="btnStatus03" onclick="setStatus('03')" class="cursor-pointer border-2 rounded-xl p-3 transition flex flex-col gap-1 border-slate-200 hover:border-blue-400">
+                  <div class="flex items-center justify-between">
+                    <span class="font-bold text-sm text-slate-800">Trạng thái 03</span>
+                    <i class="fa-solid fa-pause-circle text-blue-600"></i>
+                  </div>
+                  <span class="text-[11px] text-slate-500 leading-tight">Ngừng hoạt động chưa hoàn thành thủ tục đóng MST</span>
+                </label>
+
+                <label id="btnStatus06" onclick="setStatus('06')" class="cursor-pointer border-2 rounded-xl p-3 transition flex flex-col gap-1 border-blue-600 bg-blue-50/50">
+                  <div class="flex items-center justify-between">
+                    <span class="font-bold text-sm text-blue-900">Trạng thái 06</span>
+                    <i class="fa-solid fa-location-dot text-rose-600"></i>
+                  </div>
+                  <span class="text-[11px] text-slate-600 leading-tight">NNT không hoạt động tại địa chỉ đã đăng ký</span>
+                </label>
+              </div>
+              <p id="statusRuleHint" class="mt-2 text-[11px] text-slate-600 bg-slate-100 p-2.5 rounded-lg border border-slate-200">
+                <i class="fa-solid fa-circle-info text-blue-600 mr-1"></i>
+                <strong>Quy tắc DN 06:</strong> Phải mở lại MST để nộp bù toàn bộ hồ sơ khai thuế còn thiếu phát sinh trong suốt thời gian đóng trạng thái 06.
+              </p>
+            </div>
+
+            <!-- Mã số thuế, Tên công ty & Vốn điều lệ -->
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+              <div class="sm:col-span-4">
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Mã số thuế</label>
+                <input type="text" id="taxCode" value="0312345678" placeholder="VD: 0312345678" oninput="recalculate()" class="w-full px-3 py-2 text-sm font-mono font-semibold text-blue-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+              </div>
+              <div class="sm:col-span-8">
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Tên công ty</label>
+                <input type="text" id="companyName" value="Công ty TNHH Thương mại Dịch vụ Mẫu" placeholder="Nhập đầy đủ tên công ty..." oninput="recalculate()" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+              </div>
+              <div class="sm:col-span-12">
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Vốn điều lệ (Mức Lệ phí Môn bài)</label>
+                <select id="charterCapital" onchange="recalculate()" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                  <option value="2000000">Từ 10 tỷ đồng trở xuống (2.000.000 đ/năm)</option>
+                  <option value="3000000">Trên 10 tỷ đồng (3.000.000 đ/năm)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Ngày thành lập, Ngày đóng MST, Ngày nộp bù -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Ngày thành lập</label>
+                <input type="date" id="establishedDate" value="2023-03-01" min="2010-01-01" max="2026-12-31" onchange="recalculate()" class="w-full px-2.5 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Ngày đóng 03/06 <span class="text-rose-500">*</span></label>
+                <input type="date" id="closedDate" value="2024-05-01" min="2018-01-01" max="2026-12-31" onchange="recalculate()" class="w-full px-2.5 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-blue-900">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Ngày nộp bù HS <span class="text-rose-500">*</span></label>
+                <input type="date" id="submitDate" value="2026-04-15" min="2018-01-01" max="2028-12-31" onchange="recalculate()" class="w-full px-2.5 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-emerald-800">
+              </div>
+            </div>
+
+            <!-- Tình trạng doanh thu & hóa đơn -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1.5">Tình trạng phát sinh doanh thu & sử dụng hóa đơn</label>
+              <select id="revenueStatus" onchange="recalculate()" class="w-full px-3 py-2 text-xs font-medium border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                <option value="no_rev">Chưa phát sinh doanh thu, chưa đăng ký sử dụng hóa đơn (Miễn kiểm tra tại trụ sở)</option>
+                <option value="has_rev">Có phát sinh doanh thu và sử dụng hóa đơn (Bắt buộc kiểm tra/quyết toán thuế)</option>
+              </select>
+            </div>
+
+            <!-- Tình tiết giảm nhẹ / tăng nặng -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Tình tiết giảm nhẹ / tăng nặng</label>
+                <select id="circumstances" onchange="recalculate()" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                  <option value="none">Không có tình tiết tăng nặng, giảm nhẹ (Mức TB)</option>
+                  <option value="mitigating">Có từ 01 tình tiết giảm nhẹ trở lên</option>
+                  <option value="aggravating_1">Có 01 tình tiết tăng nặng</option>
+                  <option value="aggravating_2">Có 02 tình tiết tăng nặng</option>
+                  <option value="aggravating_3">Có từ 03 tình tiết tăng nặng trở lên</option>
+                </select>
+              </div>
+              <div class="flex flex-col justify-end">
+                <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100">
+                  <input type="checkbox" id="submitSameDay" checked onchange="recalculate()" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                  <span class="text-xs font-semibold text-slate-700 leading-tight">Nộp các tờ khai cùng sắc thuế vào cùng 01 ngày</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Card 2: Quản lý danh sách tờ khai còn thiếu (2018 - 2026) -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="bg-slate-50 px-5 py-3.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+            <h2 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <span class="w-6 h-6 rounded-md bg-blue-600 text-white text-xs flex items-center justify-center font-bold">2</span>
+              DANH SÁCH TỜ KHAI THIẾU (2018 – 2026)
+            </h2>
+            <button onclick="autoSuggestDeclarations()" class="px-2.5 py-1 text-xs font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition flex items-center gap-1">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Tự động gợi ý theo mốc ngày
+            </button>
+          </div>
+
+          <!-- Tax Type Tabs -->
+          <div class="border-b border-slate-200 bg-slate-50/70 px-3 pt-2 flex gap-1 overflow-x-auto text-xs font-semibold">
+            <button onclick="switchTaxTab('gtgt')" id="tab-gtgt" class="tax-tab px-3 py-2 rounded-t-lg border-b-2 border-blue-600 text-blue-700 bg-white whitespace-nowrap">
+              Thuế GTGT <span id="badge-gtgt" class="ml-1 px-1.5 py-0.2 bg-blue-100 text-blue-800 rounded-full text-[10px]">0</span>
+            </button>
+            <button onclick="switchTaxTab('tndn')" id="tab-tndn" class="tax-tab px-3 py-2 rounded-t-lg border-b-2 border-transparent text-slate-600 hover:text-slate-900 whitespace-nowrap">
+              QT TNDN <span id="badge-tndn" class="ml-1 px-1.5 py-0.2 bg-slate-200 text-slate-700 rounded-full text-[10px]">0</span>
+            </button>
+            <button onclick="switchTaxTab('tncn')" id="tab-tncn" class="tax-tab px-3 py-2 rounded-t-lg border-b-2 border-transparent text-slate-600 hover:text-slate-900 whitespace-nowrap">
+              QT TNCN <span id="badge-tncn" class="ml-1 px-1.5 py-0.2 bg-slate-200 text-slate-700 rounded-full text-[10px]">0</span>
+            </button>
+            <button onclick="switchTaxTab('bctc')" id="tab-bctc" class="tax-tab px-3 py-2 rounded-t-lg border-b-2 border-transparent text-slate-600 hover:text-slate-900 whitespace-nowrap">
+              BCTC <span id="badge-bctc" class="ml-1 px-1.5 py-0.2 bg-slate-200 text-slate-700 rounded-full text-[10px]">0</span>
+            </button>
+            <button onclick="switchTaxTab('lpmb')" id="tab-lpmb" class="tax-tab px-3 py-2 rounded-t-lg border-b-2 border-transparent text-slate-600 hover:text-slate-900 whitespace-nowrap">
+              Lệ phí MB <span id="badge-lpmb" class="ml-1 px-1.5 py-0.2 bg-slate-200 text-slate-700 rounded-full text-[10px]">0</span>
+            </button>
+          </div>
+
+          <!-- Tab Contents -->
+          <div class="p-4">
+            <!-- Panel GTGT -->
+            <div id="panel-gtgt" class="tax-panel space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2 bg-blue-50/70 p-2.5 rounded-lg border border-blue-100">
+                <span class="text-xs text-blue-900 font-medium">Chọn nhanh theo năm:</span>
+                <div class="flex flex-wrap gap-1" id="quickYearsGTGT"></div>
+              </div>
+              <div class="max-h-80 overflow-y-auto custom-scrollbar border border-slate-200 rounded-xl divide-y divide-slate-100" id="list-gtgt"></div>
+            </div>
+
+            <!-- Panel TNDN -->
+            <div id="panel-tndn" class="tax-panel hidden space-y-3">
+              <div class="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                Chọn các năm thiếu tờ khai Quyết toán thuế TNDN (Hạn nộp: 31/03 năm sau). Nếu DN chuyển sang trạng thái 03 trong năm, vẫn phải nộp QT TNDN đến thời điểm ngừng hoạt động.
+              </div>
+              <div class="max-h-80 overflow-y-auto custom-scrollbar border border-slate-200 rounded-xl divide-y divide-slate-100" id="list-tndn"></div>
+            </div>
+
+            <!-- Panel TNCN -->
+            <div id="panel-tncn" class="tax-panel hidden space-y-3">
+              <div class="text-xs text-amber-800 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
+                <i class="fa-solid fa-triangle-exclamation mr-1"></i> <strong>Lưu ý:</strong> Nếu doanh nghiệp <strong>không phát sinh chi trả tiền lương, tiền công</strong> trong năm thì không phải nộp hồ sơ quyết toán thuế TNCN.
+              </div>
+              <div class="max-h-80 overflow-y-auto custom-scrollbar border border-slate-200 rounded-xl divide-y divide-slate-100" id="list-tncn"></div>
+            </div>
+
+            <!-- Panel BCTC -->
+            <div id="panel-bctc" class="tax-panel hidden space-y-3">
+              <div class="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                Báo cáo tài chính năm (Hạn nộp: 31/03 năm sau) xử phạt theo <strong>Nghị định 41/2018/NĐ-CP</strong> lĩnh vực kế toán (tách biệt với xử phạt hành chính về thuế).
+              </div>
+              <div class="max-h-80 overflow-y-auto custom-scrollbar border border-slate-200 rounded-xl divide-y divide-slate-100" id="list-bctc"></div>
+            </div>
+
+            <!-- Panel LPMB -->
+            <div id="panel-lpmb" class="tax-panel hidden space-y-3">
+              <div class="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                Tích chọn <strong>Thiếu Tờ khai LPMB</strong> (chỉ nộp 1 lần khi mới thành lập hoặc thay đổi vốn) và <strong>Nợ tiền LPMB</strong> từng năm (hạn nộp tiền: 30/01 hàng năm).
+              </div>
+              <div class="max-h-80 overflow-y-auto custom-scrollbar border border-slate-200 rounded-xl divide-y divide-slate-100" id="list-lpmb"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Card 3: Vi phạm Hóa đơn & Chấp hành kiểm tra -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="bg-slate-50 px-5 py-3.5 border-b border-slate-200">
+            <h2 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <span class="w-6 h-6 rounded-md bg-blue-600 text-white text-xs flex items-center justify-center font-bold">3</span>
+              VI PHẠM HÓA ĐƠN & KIỂM TRA THUẾ (NẾU CÓ)
+            </h2>
+          </div>
+
+          <div class="p-5 space-y-4 text-xs">
+            <!-- Lập hóa đơn không đúng thời điểm -->
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">1. Lập hóa đơn không đúng thời điểm khi bán HHDV (K2 Đ24 NĐ 125 sửa đổi)</label>
+              <select id="invWrongTime" onchange="recalculate()" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="0">Không vi phạm</option>
+                <option value="1">01 số hóa đơn (Khung 500k - 1,5tr | TB: 1.000.000 đ)</option>
+                <option value="2">Từ 02 đến dưới 10 số HĐ (Khung 2tr - 5tr | TB: 3.500.000 đ)</option>
+                <option value="3">Từ 10 đến dưới 20 số HĐ (Khung 5tr - 15tr | TB: 10.000.000 đ)</option>
+                <option value="4">Từ 20 đến dưới 50 số HĐ (Khung 15tr - 30tr | TB: 22.500.000 đ)</option>
+                <option value="5">Từ 50 đến dưới 100 số HĐ (Khung 30tr - 50tr | TB: 40.000.000 đ)</option>
+                <option value="6">Từ 100 số hóa đơn trở lên (Khung 50tr - 70tr | TB: 60.000.000 đ)</option>
+              </select>
+            </div>
+
+            <!-- Không lập hóa đơn -->
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">2. Không lập hóa đơn khi bán HHDV theo quy định (K3 Đ24 NĐ 125 sửa đổi)</label>
+              <select id="invNotIssued" onchange="recalculate()" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="0">Không vi phạm</option>
+                <option value="1">01 số hóa đơn (Khung 1tr - 2tr | TB: 1.500.000 đ)</option>
+                <option value="2">Từ 02 đến dưới 10 số HĐ (Khung 2tr - 10tr | TB: 6.000.000 đ)</option>
+                <option value="3">Từ 10 đến dưới 20 số HĐ (Khung 10tr - 30tr | TB: 20.000.000 đ)</option>
+                <option value="4">Từ 20 đến dưới 50 số HĐ (Khung 30tr - 50tr | TB: 40.000.000 đ)</option>
+                <option value="5">Từ 50 số hóa đơn trở lên (Khung 60tr - 80tr | TB: 70.000.000 đ)</option>
+              </select>
+            </div>
+
+            <!-- Cho bán / sử dụng HĐ không hợp pháp -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label class="flex items-start gap-2 p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
+                <input type="checkbox" id="invSell" onchange="recalculate()" class="mt-0.5 w-4 h-4 text-rose-600 rounded">
+                <div>
+                  <span class="font-semibold text-slate-800 block">Cho, bán hóa đơn (Đ22)</span>
+                  <span class="text-[11px] text-slate-500">Khung 20 - 50tr (TB 35tr)</span>
+                </div>
+              </label>
+
+              <label class="flex items-start gap-2 p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
+                <input type="checkbox" id="invIllegalUse" onchange="recalculate()" class="mt-0.5 w-4 h-4 text-rose-600 rounded">
+                <div>
+                  <span class="font-semibold text-slate-800 block">Dùng HĐ bất hợp pháp (Đ28)</span>
+                  <span class="text-[11px] text-slate-500">Khung 20 - 50tr (TB 35tr)</span>
+                </div>
+              </label>
+            </div>
+
+            <!-- Chấp hành quyết định kiểm tra thuế -->
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">3. Chấp hành quyết định kiểm tra / cưỡng chế thuế (Điều 15 NĐ 125)</label>
+              <select id="auditCompliance" onchange="recalculate()" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="0">Chấp hành đầy đủ quy định</option>
+                <option value="1">Không nhận QĐ / Chậm chấp hành quá 3 ngày / Chậm cung cấp TL quá 6h (2 - 5tr | TB: 3.500.000 đ)</option>
+                <option value="2">Không cung cấp sổ sách tài liệu / Vi phạm niêm phong (5 - 10tr | TB: 7.500.000 đ + Ấn định thuế)</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- RIGHT COLUMN: SUMMARY DASHBOARD & DETAILED BREAKDOWN (7 cols) -->
+      <div class="lg:col-span-7 space-y-5 print-full">
+
+        <!-- Top KPI Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 print-break">
+          <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 border-l-4 border-l-blue-600">
+            <div class="text-xs font-semibold text-slate-500 uppercase">Tổng tiền phạt VPHC</div>
+            <div id="kpiAdminPenalty" class="text-xl sm:text-2xl font-extrabold text-blue-700 mt-1">0 đ</div>
+            <div class="text-[11px] text-slate-500 mt-1">Thuế, Lệ phí MB, Hóa đơn & Kế toán</div>
+          </div>
+
+          <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 border-l-4 border-l-amber-500">
+            <div class="text-xs font-semibold text-slate-500 uppercase">Thuế truy thu & Chậm nộp</div>
+            <div id="kpiTaxAndLate" class="text-xl sm:text-2xl font-extrabold text-amber-600 mt-1">0 đ</div>
+            <div id="kpiLateSub" class="text-[11px] text-slate-500 mt-1">Gốc: 0 đ | Chậm nộp (0,03%/ngày): 0 đ</div>
+          </div>
+
+          <div class="bg-gradient-to-br from-slate-900 to-blue-950 rounded-2xl p-4 shadow-md text-white">
+            <div class="text-xs font-semibold text-blue-200 uppercase">Tổng nghĩa vụ nộp NSNN</div>
+            <div id="kpiGrandTotal" class="text-xl sm:text-2xl font-extrabold text-white mt-1">0 đ</div>
+            <div class="text-[11px] text-blue-300 mt-1">Bao gồm phạt VPHC + Truy thu + Chậm nộp</div>
+          </div>
+        </div>
+
+        <!-- Dynamic Legal Alerts Banner -->
+        <div id="legalAlertsContainer" class="space-y-2.5 print-break"></div>
+
+        <!-- Detailed Breakdown Table -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden print-break">
+          <div class="bg-slate-50 px-5 py-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 class="font-bold text-slate-900 text-base">BẢNG TỔNG HỢP DỰ TOÁN XỬ PHẠT CHI TIẾT</h2>
+              <p id="reportSubtitle" class="text-xs text-slate-600 mt-0.5 font-medium">MST: 0312345678 | Công ty TNHH Thương mại Dịch vụ Mẫu | Trạng thái MST: 06</p>
+            </div>
+            <div class="flex items-center gap-2 no-print">
+              <button onclick="exportExcel()" class="px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-500 rounded-lg transition flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-file-excel"></i> Xuất Excel
+              </button>
+              <button onclick="window.print()" class="px-3 py-1.5 text-xs font-semibold bg-slate-800 text-white hover:bg-slate-700 rounded-lg transition flex items-center gap-1.5">
+                <i class="fa-solid fa-print"></i> In báo cáo
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-100/80 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                  <th class="py-3 px-4 w-10">STT</th>
+                  <th class="py-3 px-3">Nhóm hành vi / Kỳ thuế vi phạm</th>
+                  <th class="py-3 px-3">Chi tiết tính toán & Căn cứ pháp lý</th>
+                  <th class="py-3 px-4 text-right w-36">Số tiền (VNĐ)</th>
+                </tr>
+              </thead>
+              <tbody id="summaryTableBody" class="divide-y divide-slate-200 text-xs">
+                <!-- Dynamic rows injected here -->
+              </tbody>
+              <tfoot class="bg-slate-50 font-bold text-slate-900 border-t-2 border-slate-300 text-sm">
+                <tr>
+                  <td colspan="3" class="py-3.5 px-4 text-right uppercase text-xs tracking-wider text-slate-700">Tổng cộng nghĩa vụ tài chính phải nộp NSNN:</td>
+                  <td id="tableGrandTotal" class="py-3.5 px-4 text-right text-blue-800 font-extrabold text-base">0 đ</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </section>
+
+        <!-- Procedural Roadmap & Legal Notes -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3 print-break">
+          <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-list-check text-blue-600"></i>
+            QUY TRÌNH THỦ TỤC & LƯU Ý PHÁP LÝ KHI XỬ LÝ HỒ SƠ
+          </h3>
+          <div id="proceduralNotes" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-slate-600">
+            <!-- Dynamic procedural guidance -->
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- FOOTER: Thiết kế phần chân trang web thông tin nguồn tham khảo -->
+  <footer class="bg-blue-600 text-slate-100 text-xs py-8 border-t border-slate-800 mt-auto transition-colors no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-2">
+      <p class="font-bold text-slate-200">@Hinhhai - HiTaxTech - Công cụ Tính toán & Phân tích Xử phạt Thuế DN Trạng thái 03 & 06.</p>
+    </div>
+  </footer>
+
+  <script>
+    // =========================================================================
+    // STATE & DATA STRUCTURES (2018 - 2026)
+    // =========================================================================
+    const YEARS = [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
+    const CUTOFF_DATE = new Date('2020-12-05T00:00:00'); // Mốc hiệu lực NĐ 125/2020/NĐ-CP
+
+    let currentStatus = '06';
+    let lastCalculationRows = []; // Lưu dữ liệu xuất Excel
+
+    // Lưu trữ trạng thái các tờ khai thiếu
+    const state = {
+      gtgt: {}, // key: "YYYY-Q" -> { checked: bool, tax: number }
+      tndn: {}, // key: "YYYY"   -> { checked: bool, tax: number }
+      tncn: {}, // key: "YYYY"   -> { checked: bool, tax: number }
+      bctc: {}, // key: "YYYY"   -> { checked: bool }
+      lpmbDecl: {}, // key: "YYYY" -> { checked: bool } (Tờ khai LPMB)
+      lpmbFee: {}   // key: "YYYY" -> { checked: bool } (Tiền LPMB nợ)
+    };
+
+    // Khởi tạo dữ liệu rỗng cho tất cả các năm 2018 - 2026
+    function initEmptyState() {
+      YEARS.forEach(y => {
+        [1, 2, 3, 4].forEach(q => {
+          state.gtgt[`${y}-${q}`] = { checked: false, tax: 0 };
+        });
+        state.tndn[`${y}`] = { checked: false, tax: 0 };
+        state.tncn[`${y}`] = { checked: false, tax: 0 };
+        state.bctc[`${y}`] = { checked: false };
+        state.lpmbDecl[`${y}`] = { checked: false };
+        state.lpmbFee[`${y}`] = { checked: false };
+      });
+    }
+
+    // =========================================================================
+    // HELPER: TÍNH HẠN NỘP TỜ KHAI & TIỀN THUẾ
+    // =========================================================================
+    function getQuarterDueDate(year, quarter) {
+      // Hạn nộp tờ khai thuế GTGT theo quý: ngày cuối cùng của tháng đầu quý sau
+      if (quarter === 1) return new Date(`${year}-04-30T23:59:59`);
+      if (quarter === 2) return new Date(`${year}-07-31T23:59:59`);
+      if (quarter === 3) return new Date(`${year}-10-31T23:59:59`);
+      return new Date(`${year + 1}-01-31T23:59:59`);
+    }
+
+    function getAnnualDueDate(year) {
+      // Hạn nộp QT TNDN, QT TNCN, BCTC năm: 31/03 năm sau
+      return new Date(`${year + 1}-03-31T23:59:59`);
+    }
+
+    function getLPMBDueDate(year) {
+      // Hạn nộp tờ khai / tiền LPMB năm: 30/01 hàng năm
+      return new Date(`${year}-01-30T23:59:59`);
+    }
+
+    function calcDaysLate(dueDate, submitDate) {
+      const due = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+      const sub = new Date(submitDate.getFullYear(), submitDate.getMonth(), submitDate.getDate());
+      const diffTime = sub - due;
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays > 0 ? diffDays : 0;
+    }
+
+    function formatVND(amount) {
+      return new Intl.NumberFormat('vi-VN').format(Math.round(amount)) + ' đ';
+    }
+
+    function formatNumberDot(amount) {
+      if (!amount || amount <= 0) return '';
+      return new Intl.NumberFormat('vi-VN').format(Math.round(amount));
+    }
+
+    function formatDateVN(dateObj) {
+      const d = String(dateObj.getDate()).padStart(2, '0');
+      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const y = dateObj.getFullYear();
+      return `${d}/${m}/${y}`;
+    }
+
+    // Tính ngày bắt đầu tính chậm nộp (ngày tiếp theo ngày hết hạn nộp)
+    function getNextDayVN(dueDate) {
+      const nextDay = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate() + 1);
+      return formatDateVN(nextDay);
+    }
+
+    // Xử lý nhập tiền có dấu chấm phân cách phần nghìn trực tiếp
+    function handleTaxInput(type, key, inputEl) {
+      const rawDigits = inputEl.value.replace(/\D/g, '');
+      const numVal = rawDigits ? parseInt(rawDigits, 10) : 0;
+      state[type][key].tax = numVal;
+      inputEl.value = numVal > 0 ? new Intl.NumberFormat('vi-VN').format(numVal) : '';
+      recalculate();
+    }
+
+    // =========================================================================
+    // UI RENDERING: TẠO DANH SÁCH TỜ KHAI (2018 - 2026)
+    // =========================================================================
+    function renderAllDeclarationLists() {
+      // 1. Render Quick Year Buttons for GTGT
+      const quickContainer = document.getElementById('quickYearsGTGT');
+      quickContainer.innerHTML = YEARS.map(y => `
+        <button type="button" onclick="toggleYearGTGT(${y})" class="px-2 py-0.5 text-[11px] font-semibold bg-white border border-blue-200 text-blue-700 hover:bg-blue-600 hover:text-white rounded transition">
+          ${y}
+        </button>
+      `).join('');
+
+      // 2. Render GTGT List
+      const listGTGT = document.getElementById('list-gtgt');
+      let gtgtHTML = '';
+      YEARS.forEach(y => {
+        [1, 2, 3, 4].forEach(q => {
+          const key = `${y}-${q}`;
+          const item = state.gtgt[key];
+          const due = getQuarterDueDate(y, q);
+          const isExpired = due < CUTOFF_DATE;
+          gtgtHTML += `
+            <div class="p-2.5 flex items-center justify-between gap-2 hover:bg-slate-50 transition ${item.checked ? 'bg-blue-50/40' : ''}">
+              <label class="flex items-center gap-2.5 cursor-pointer flex-1">
+                <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleDecl('gtgt', '${key}', this.checked)" class="w-4 h-4 text-blue-600 rounded">
+                <div>
+                  <span class="text-xs font-semibold text-slate-800">Thuế GTGT Quý ${q}/${y}</span>
+                  <div class="flex items-center gap-2 text-[10px] text-slate-500">
+                    <span>Hạn nộp: ${formatDateVN(due)}</span>
+                    ${isExpired ? '<span class="px-1.5 py-0.2 bg-slate-200 text-slate-700 rounded font-medium">Trước 05/12/2020 (Hết thời hiệu phạt)</span>' : ''}
+                  </div>
+                </div>
+              </label>
+              <div class="w-36 ${item.checked ? '' : 'opacity-40 pointer-events-none'}">
+                <div class="relative">
+                  <input type="text" inputmode="numeric" placeholder="Tiền thuế PS" value="${formatNumberDot(item.tax)}"
+                    oninput="handleTaxInput('gtgt', '${key}', this)"
+                    class="w-full pl-2 pr-6 py-1 text-xs border border-slate-300 rounded text-right font-mono font-semibold text-slate-800 focus:ring-1 focus:ring-blue-500 outline-none">
+                  <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-semibold">đ</span>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+      });
+      listGTGT.innerHTML = gtgtHTML;
+
+      // 3. Render Annual Taxes (TNDN, TNCN)
+      ['tndn', 'tncn'].forEach(type => {
+        const container = document.getElementById(`list-${type}`);
+        const labelName = type === 'tndn' ? 'Quyết toán thuế TNDN năm' : 'Quyết toán thuế TNCN năm';
+        container.innerHTML = YEARS.map(y => {
+          const key = `${y}`;
+          const item = state[type][key];
+          const due = getAnnualDueDate(y);
+          const isExpired = due < CUTOFF_DATE;
+          return `
+            <div class="p-2.5 flex items-center justify-between gap-2 hover:bg-slate-50 transition ${item.checked ? 'bg-blue-50/40' : ''}">
+              <label class="flex items-center gap-2.5 cursor-pointer flex-1">
+                <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleDecl('${type}', '${key}', this.checked)" class="w-4 h-4 text-blue-600 rounded">
+                <div>
+                  <span class="text-xs font-semibold text-slate-800">${labelName} ${y}</span>
+                  <div class="flex items-center gap-2 text-[10px] text-slate-500">
+                    <span>Hạn nộp: ${formatDateVN(due)}</span>
+                    ${isExpired ? '<span class="px-1.5 py-0.2 bg-slate-200 text-slate-700 rounded font-medium">Trước 05/12/2020 (Hết thời hiệu phạt)</span>' : ''}
+                  </div>
+                </div>
+              </label>
+              <div class="w-36 ${item.checked ? '' : 'opacity-40 pointer-events-none'}">
+                <div class="relative">
+                  <input type="text" inputmode="numeric" placeholder="Tiền thuế PS" value="${formatNumberDot(item.tax)}"
+                    oninput="handleTaxInput('${type}', '${key}', this)"
+                    class="w-full pl-2 pr-6 py-1 text-xs border border-slate-300 rounded text-right font-mono font-semibold text-slate-800 focus:ring-1 focus:ring-blue-500 outline-none">
+                  <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-semibold">đ</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      });
+
+      // 4. Render BCTC List
+      const listBCTC = document.getElementById('list-bctc');
+      listBCTC.innerHTML = YEARS.map(y => {
+        const key = `${y}`;
+        const item = state.bctc[key];
+        const due = getAnnualDueDate(y);
+        return `
+          <div class="p-2.5 flex items-center justify-between gap-2 hover:bg-slate-50 transition ${item.checked ? 'bg-blue-50/40' : ''}">
+            <label class="flex items-center gap-2.5 cursor-pointer flex-1">
+              <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleDecl('bctc', '${key}', this.checked)" class="w-4 h-4 text-blue-600 rounded">
+              <div>
+                <span class="text-xs font-semibold text-slate-800">Báo cáo tài chính năm ${y}</span>
+                <span class="block text-[10px] text-slate-500">Hạn nộp: ${formatDateVN(due)} (NĐ 41/2018/NĐ-CP)</span>
+              </div>
+            </label>
+          </div>
+        `;
+      }).join('');
+
+      // 5. Render LPMB List
+      const listLPMB = document.getElementById('list-lpmb');
+      const capitalVal = parseInt(document.getElementById('charterCapital').value, 10);
+      listLPMB.innerHTML = YEARS.map(y => {
+        const key = `${y}`;
+        const declChecked = state.lpmbDecl[key].checked;
+        const feeChecked = state.lpmbFee[key].checked;
+        const due = getLPMBDueDate(y);
+        return `
+          <div class="p-2.5 flex flex-wrap items-center justify-between gap-2 hover:bg-slate-50 transition ${(declChecked || feeChecked) ? 'bg-blue-50/40' : ''}">
+            <div>
+              <span class="text-xs font-bold text-slate-800">Năm ${y}</span>
+              <span class="block text-[10px] text-slate-500">Hạn nộp: 30/01/${y} | Mức phí: ${formatVND(capitalVal)}</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <label class="flex items-center gap-1.5 cursor-pointer text-xs bg-white px-2 py-1 rounded border border-slate-200">
+                <input type="checkbox" ${declChecked ? 'checked' : ''} onchange="toggleLPMB('decl', '${key}', this.checked)" class="w-3.5 h-3.5 text-blue-600 rounded">
+                <span>Thiếu Tờ khai</span>
+              </label>
+              <label class="flex items-center gap-1.5 cursor-pointer text-xs bg-white px-2 py-1 rounded border border-slate-200">
+                <input type="checkbox" ${feeChecked ? 'checked' : ''} onchange="toggleLPMB('fee', '${key}', this.checked)" class="w-3.5 h-3.5 text-amber-600 rounded">
+                <span>Nợ tiền LPMB</span>
+              </label>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      updateTabBadges();
+    }
+
+    function updateTabBadges() {
+      const countGTGT = Object.values(state.gtgt).filter(x => x.checked).length;
+      const countTNDN = Object.values(state.tndn).filter(x => x.checked).length;
+      const countTNCN = Object.values(state.tncn).filter(x => x.checked).length;
+      const countBCTC = Object.values(state.bctc).filter(x => x.checked).length;
+      const countLPMB = Object.values(state.lpmbDecl).filter(x => x.checked).length + Object.values(state.lpmbFee).filter(x => x.checked).length;
+
+      document.getElementById('badge-gtgt').textContent = countGTGT;
+      document.getElementById('badge-tndn').textContent = countTNDN;
+      document.getElementById('badge-tncn').textContent = countTNCN;
+      document.getElementById('badge-bctc').textContent = countBCTC;
+      document.getElementById('badge-lpmb').textContent = countLPMB;
+    }
+
+    // =========================================================================
+    // INTERACTION HANDLERS
+    // =========================================================================
+    function setStatus(status) {
+      currentStatus = status;
+      const btn03 = document.getElementById('btnStatus03');
+      const btn06 = document.getElementById('btnStatus06');
+      const badge = document.getElementById('statusBadge');
+      const hint = document.getElementById('statusRuleHint');
+
+      if (status === '03') {
+        btn03.className = 'cursor-pointer border-2 rounded-xl p-3 transition flex flex-col gap-1 border-blue-600 bg-blue-50/50';
+        btn06.className = 'cursor-pointer border-2 rounded-xl p-3 transition flex flex-col gap-1 border-slate-200 hover:border-blue-400';
+        badge.className = 'px-2.5 py-0.5 text-xs font-bold rounded-full bg-blue-100 text-blue-800';
+        badge.textContent = 'Trạng thái 03';
+        hint.innerHTML = '<i class="fa-solid fa-circle-info text-blue-600 mr-1"></i> <strong>Quy tắc DN 03:</strong> Kể từ ngày chuyển sang trạng thái 03, DN không phải nộp tờ khai của các kỳ tiếp theo (chỉ xử lý các tờ khai còn thiếu phát sinh trước thời điểm đóng 03).';
+      } else {
+        btn06.className = 'cursor-pointer border-2 rounded-xl p-3 transition flex flex-col gap-1 border-blue-600 bg-blue-50/50';
+        btn03.className = 'cursor-pointer border-2 rounded-xl p-3 transition flex flex-col gap-1 border-slate-200 hover:border-blue-400';
+        badge.className = 'px-2.5 py-0.5 text-xs font-bold rounded-full bg-amber-100 text-amber-800';
+        badge.textContent = 'Trạng thái 06';
+        hint.innerHTML = '<i class="fa-solid fa-circle-info text-blue-600 mr-1"></i> <strong>Quy tắc DN 06:</strong> Phải mở lại MST để nộp bù toàn bộ hồ sơ khai thuế còn thiếu phát sinh trong suốt thời gian đóng trạng thái 06 cho đến thời điểm làm thủ tục.';
+      }
+      recalculate();
+    }
+
+    function switchTaxTab(tabName) {
+      document.querySelectorAll('.tax-tab').forEach(el => {
+        el.className = 'tax-tab px-3 py-2 rounded-t-lg border-b-2 border-transparent text-slate-600 hover:text-slate-900 whitespace-nowrap';
+      });
+      document.getElementById(`tab-${tabName}`).className = 'tax-tab px-3 py-2 rounded-t-lg border-b-2 border-blue-600 text-blue-700 bg-white whitespace-nowrap';
+
+      document.querySelectorAll('.tax-panel').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`panel-${tabName}`).classList.remove('hidden');
+    }
+
+    function toggleDecl(type, key, checked) {
+      state[type][key].checked = checked;
+      renderAllDeclarationLists();
+      recalculate();
+    }
+
+    function toggleLPMB(subType, key, checked) {
+      if (subType === 'decl') state.lpmbDecl[key].checked = checked;
+      if (subType === 'fee') state.lpmbFee[key].checked = checked;
+      renderAllDeclarationLists();
+      recalculate();
+    }
+
+    function toggleYearGTGT(year) {
+      const allChecked = [1, 2, 3, 4].every(q => state.gtgt[`${year}-${q}`].checked);
+      [1, 2, 3, 4].forEach(q => {
+        state.gtgt[`${year}-${q}`].checked = !allChecked;
+      });
+      renderAllDeclarationLists();
+      recalculate();
+    }
+
+    // Tự động gợi ý các tờ khai thiếu dựa trên Ngày thành lập, Ngày đóng 03/06 và Ngày nộp bù
+    function autoSuggestDeclarations() {
+      initEmptyState();
+      const estDate = new Date(document.getElementById('establishedDate').value + 'T00:00:00');
+      const clsDate = new Date(document.getElementById('closedDate').value + 'T00:00:00');
+      const subDate = new Date(document.getElementById('submitDate').value + 'T00:00:00');
+
+      const estYear = estDate.getFullYear();
+      const clsYear = clsDate.getFullYear();
+      const subYear = subDate.getFullYear();
+
+      // Mốc kết thúc kỳ phải kê khai:
+      // - Nếu trạng thái 03: chỉ tính đến kỳ chứa ngày đóng 03
+      // - Nếu trạng thái 06: tính đến kỳ trước ngày nộp bù hồ sơ
+      const endLimitDate = currentStatus === '03' ? clsDate : subDate;
+
+      YEARS.forEach(y => {
+        if (y < estYear || y > endLimitDate.getFullYear()) return;
+
+        // GTGT theo quý
+        [1, 2, 3, 4].forEach(q => {
+          const qStartMonth = (q - 1) * 3;
+          const qEnd = new Date(y, qStartMonth + 3, 0); // Ngày cuối quý
+          const qStart = new Date(y, qStartMonth, 1);
+          if (qEnd >= estDate && qStart <= endLimitDate) {
+            if (currentStatus === '06' && qEnd < subDate) {
+              state.gtgt[`${y}-${q}`].checked = true;
+            } else if (currentStatus === '03' && qStart <= clsDate) {
+              state.gtgt[`${y}-${q}`].checked = true;
+            }
+          }
+        });
+
+        // QT TNDN năm
+        if (y >= estYear && y <= (currentStatus === '03' ? clsYear : subYear - 1)) {
+          state.tndn[`${y}`].checked = true;
+        }
+
+        // Lệ phí môn bài: Miễn năm đầu thành lập (theo NĐ 22/2020/NĐ-CP từ 25/02/2020)
+        if (y === estYear) {
+          state.lpmbDecl[`${y}`].checked = true;
+          if (estYear < 2020) state.lpmbFee[`${y}`].checked = true;
+        } else if (y > estYear && y <= (currentStatus === '03' ? clsYear : subYear - 1)) {
+          state.lpmbFee[`${y}`].checked = true;
+        }
+      });
+
+      renderAllDeclarationLists();
+      recalculate();
+    }
+
+    // =========================================================================
+    // CORE CALCULATION ENGINE (THEO TÀI LIỆU HƯỚNG DẪN CỤC THUẾ)
+    // =========================================================================
+    function getArticle13Penalty(daysLate, hasTax, taxAmount, circumstances, isNotSubmitted = false) {
+      // Điều 13 Nghị định 125/2020/NĐ-CP (sửa đổi bổ sung bởi Khoản 10 Điều 1 NĐ 310/2025/NĐ-CP)
+      if (daysLate <= 0 && !isNotSubmitted) return { fine: 0, label: 'Đúng hạn', article: '' };
+
+      // 1. Quá hạn từ 1 - 5 ngày & có tình tiết giảm nhẹ -> Cảnh cáo
+      if (!isNotSubmitted && daysLate >= 1 && daysLate <= 5 && circumstances === 'mitigating') {
+        return { fine: 0, label: 'Phạt cảnh cáo (Quá hạn 1-5 ngày, có tình tiết giảm nhẹ)', article: 'K1 Đ13 NĐ 125/2020' };
+      }
+
+      // 2. Quá hạn 1 - 30 ngày (Khung 2tr - 5tr, TB 3.5tr)
+      if (!isNotSubmitted && daysLate >= 1 && daysLate <= 30) {
+        let fine = 3500000;
+        if (circumstances === 'mitigating') fine = 2000000;
+        if (circumstances === 'aggravating_1') fine = 4250000;
+        if (circumstances === 'aggravating_2' || circumstances === 'aggravating_3') fine = 5000000;
+        return { fine, label: `Quá hạn ${daysLate} ngày (Khung 2 - 5 triệu đồng)`, article: 'K2 Đ13 NĐ 125/2020' };
+      }
+
+      // 3. Quá hạn 31 - 60 ngày (Khung 5tr - 8tr, TB 6.5tr)
+      if (!isNotSubmitted && daysLate >= 31 && daysLate <= 60) {
+        let fine = 6500000;
+        if (circumstances === 'mitigating') fine = 5000000;
+        if (circumstances === 'aggravating_1') fine = 7250000;
+        if (circumstances === 'aggravating_2' || circumstances === 'aggravating_3') fine = 8000000;
+        return { fine, label: `Quá hạn ${daysLate} ngày (Khung 5 - 8 triệu đồng)`, article: 'K3 Đ13 NĐ 125/2020' };
+      }
+
+      // 4. Quá hạn 61 - 90 ngày (Khung 8tr - 15tr, TB 11.5tr)
+      if (!isNotSubmitted && daysLate >= 61 && daysLate <= 90) {
+        let fine = 11500000;
+        if (circumstances === 'mitigating') fine = 8000000;
+        if (circumstances === 'aggravating_1') fine = 13250000;
+        if (circumstances === 'aggravating_2' || circumstances === 'aggravating_3') fine = 15000000;
+        return { fine, label: `Quá hạn ${daysLate} ngày (Khung 8 - 15 triệu đồng)`, article: 'Điểm a K4 Đ13 NĐ 125/2020' };
+      }
+
+      // 5. Quá hạn từ 91 ngày trở lên
+      if (daysLate >= 91 || isNotSubmitted) {
+        if (!hasTax || taxAmount <= 0) {
+          // Không phát sinh số thuế phải nộp -> Khoản 4 Điều 13 (8tr - 15tr, TB 11.5tr)
+          let fine = 11500000;
+          if (circumstances === 'mitigating') fine = 8000000;
+          if (circumstances === 'aggravating_1') fine = 13250000;
+          if (circumstances === 'aggravating_2' || circumstances === 'aggravating_3') fine = 15000000;
+          return {
+            fine,
+            label: `Quá hạn ${daysLate} ngày (≥91 ngày), không phát sinh số thuế phải nộp (Khung 8 - 15 triệu đồng)`,
+            article: 'Điểm b K4 Đ13 NĐ 125/2020 & NĐ 310/2025'
+          };
+        } else {
+          // Có phát sinh số thuế phải nộp & đã nộp đủ trước kiểm tra -> Khoản 5 Điều 13 sửa đổi (15tr - 25tr, TB 20tr)
+          // Quy tắc trần NĐ 310/2025: Nếu mức phạt > số thuế PS thì phạt tối đa bằng số thuế PS, nhưng không thấp hơn mức TB khoản 4 (11.5tr)
+          let baseFine = 20000000;
+          if (circumstances === 'mitigating') baseFine = 15000000;
+          if (circumstances === 'aggravating_1') baseFine = 22500000;
+          if (circumstances === 'aggravating_2' || circumstances === 'aggravating_3') baseFine = 25000000;
+
+          let finalFine = baseFine;
+          let capNote = '';
+          if (baseFine > taxAmount) {
+            finalFine = Math.max(taxAmount, 11500000);
+            capNote = ` [Áp dụng trần NĐ 310/2025: phạt tối đa bằng thuế PS nhưng không thấp hơn 11,5tr]`;
+          }
+          return {
+            fine: finalFine,
+            label: `Quá hạn ${daysLate} ngày (>90 ngày), có PS thuế ${formatVND(taxAmount)}${capNote}`,
+            article: 'K5 Đ13 NĐ 125/2020 (sửa đổi bởi K10 Đ1 NĐ 310/2025)'
+          };
+        }
+      }
+      return { fine: 0, label: '', article: '' };
+    }
+
+    function recalculate() {
+      const submitDate = new Date(document.getElementById('submitDate').value + 'T00:00:00');
+      const closedDate = new Date(document.getElementById('closedDate').value + 'T00:00:00');
+      const charterCapital = parseInt(document.getElementById('charterCapital').value, 10);
+      const revenueStatus = document.getElementById('revenueStatus').value;
+      const circumstances = document.getElementById('circumstances').value;
+      const submitSameDay = document.getElementById('submitSameDay').checked;
+
+      const taxCodeVal = document.getElementById('taxCode').value.trim();
+      const companyNameVal = document.getElementById('companyName').value.trim();
+
+      // Update Subtitle
+      const identityParts = [];
+      if (taxCodeVal) identityParts.push(`MST: ${taxCodeVal}`);
+      if (companyNameVal) identityParts.push(companyNameVal);
+      identityParts.push(`Trạng thái MST: ${currentStatus}`);
+      identityParts.push(`Ngày đóng: ${formatDateVN(closedDate)}`);
+      identityParts.push(`Ngày nộp bù: ${formatDateVN(submitDate)}`);
+      document.getElementById('reportSubtitle').textContent = identityParts.join(' | ');
+
+      let totalAdminPenalty = 0;
+      let totalTaxPrincipal = 0;
+      let totalLateInterest = 0;
+      const tableRows = [];
+      let stt = 1;
+
+      // -----------------------------------------------------------------------
+      // 1. XỬ LÝ TỜ KHAI THUẾ (GTGT, QT TNDN, QT TNCN)
+      // -----------------------------------------------------------------------
+      const taxTypes = [
+        { key: 'gtgt', name: 'Tờ khai Thuế GTGT', isQuarter: true },
+        { key: 'tndn', name: 'Tờ khai Quyết toán thuế TNDN', isQuarter: false },
+        { key: 'tncn', name: 'Tờ khai Quyết toán thuế TNCN', isQuarter: false }
+      ];
+
+      taxTypes.forEach(tType => {
+        const selectedItems = [];
+        Object.entries(state[tType.key]).forEach(([k, val]) => {
+          if (!val.checked) return;
+          let dueDate, periodLabel;
+          if (tType.isQuarter) {
+            const [y, q] = k.split('-').map(Number);
+            dueDate = getQuarterDueDate(y, q);
+            periodLabel = `Quý ${q}/${y}`;
+          } else {
+            const y = Number(k);
+            dueDate = getAnnualDueDate(y);
+            periodLabel = `Năm ${y}`;
+          }
+          const daysLate = calcDaysLate(dueDate, submitDate);
+          const isExpired = dueDate < CUTOFF_DATE; // Trước 05/12/2020 -> Hết thời hiệu xử phạt VPHC
+          selectedItems.push({ k, periodLabel, dueDate, daysLate, isExpired, tax: val.tax || 0 });
+        });
+
+        if (selectedItems.length === 0) return;
+
+        // Tách riêng các tờ khai hết thời hiệu xử phạt (trước 05/12/2020)
+        const expiredItems = selectedItems.filter(i => i.isExpired);
+        const validItems = selectedItems.filter(i => !i.isExpired);
+
+        // Xử lý nhóm hết thời hiệu xử phạt (trước 05/12/2020)
+        if (expiredItems.length > 0) {
+          let expTaxSum = 0;
+          let expInterestSum = 0;
+          const expLateDetails = [];
+          const subDateVN = formatDateVN(submitDate);
+          expiredItems.forEach(item => {
+            if (item.tax > 0) {
+              const itemInterest = item.tax * 0.0003 * item.daysLate;
+              const startLateVN = getNextDayVN(item.dueDate);
+              expTaxSum += item.tax;
+              expInterestSum += itemInterest;
+              expLateDetails.push(`${item.periodLabel}: gốc ${formatVND(item.tax)}, chậm nộp ${item.daysLate} ngày (từ ngày ${startLateVN} đến ngày ${subDateVN}) = ${formatVND(itemInterest)}`);
+            }
+          });
+          totalTaxPrincipal += expTaxSum;
+          totalLateInterest += expInterestSum;
+
+          tableRows.push({
+            stt: stt++,
+            title: `${tType.name} (${expiredItems.map(i => i.periodLabel).join(', ')})`,
+            detail: `Hạn nộp trước 05/12/2020: <strong>Đã hết thời hiệu xử phạt VPHC</strong> (02 năm theo NĐ 129/2013/NĐ-CP). ${expTaxSum > 0 ? `Truy thu thuế thiếu: <strong>${formatVND(expTaxSum)}</strong> + Tiền chậm nộp 0,03%/ngày: <strong>${formatVND(expInterestSum)}</strong> (${expLateDetails.join('; ')}).` : 'Không phát sinh thuế truy thu.'}`,
+            amount: expTaxSum + expInterestSum,
+            badge: 'Hết thời hiệu VPHC'
+          });
+        }
+
+        // Xử lý nhóm còn thời hiệu xử phạt (sau 05/12/2020)
+        if (validItems.length > 0) {
+          // Tính tiền thuế gốc và tiền chậm nộp 0,03%/ngày cho từng tờ khai
+          let groupTaxSum = 0;
+          let groupInterestSum = 0;
+          const groupLateDetails = [];
+          const subDateVN = formatDateVN(submitDate);
+          validItems.forEach(item => {
+            if (item.tax > 0) {
+              const itemInterest = item.tax * 0.0003 * item.daysLate;
+              const startLateVN = getNextDayVN(item.dueDate);
+              groupTaxSum += item.tax;
+              groupInterestSum += itemInterest;
+              groupLateDetails.push(`${item.periodLabel}: gốc ${formatVND(item.tax)}, chậm nộp ${item.daysLate} ngày (từ ngày ${startLateVN} đến ngày ${subDateVN}) = ${formatVND(itemInterest)}`);
+            }
+          });
+          totalTaxPrincipal += groupTaxSum;
+          totalLateInterest += groupInterestSum;
+
+          if (submitSameDay) {
+            // Nguyên tắc điểm b khoản 3 Điều 5 NĐ 125/2020: Nộp cùng 1 ngày cùng sắc thuế -> xử phạt 01 hành vi khung cao nhất
+            const maxDays = Math.max(...validItems.map(i => i.daysLate));
+            const totalTaxInGroup = validItems.reduce((acc, i) => acc + i.tax, 0);
+            const res = getArticle13Penalty(maxDays, totalTaxInGroup > 0, totalTaxInGroup, circumstances);
+            totalAdminPenalty += res.fine;
+
+            tableRows.push({
+              stt: stt++,
+              title: `${tType.name} (${validItems.length} tờ khai: ${validItems.map(i => i.periodLabel).join(', ')})`,
+              detail: `Nộp cùng 01 ngày $\\rightarrow$ <strong>Gộp thành 01 hành vi vi phạm</strong> có khung phạt cao nhất. ${res.label}. <em>(${res.article})</em>`,
+              amount: res.fine,
+              badge: 'Phạt VPHC Thuế'
+            });
+          } else {
+            // Nộp khác ngày -> phạt riêng từng tờ khai
+            validItems.forEach((item, idx) => {
+              const effCirc = (idx > 0 && circumstances === 'none') ? 'aggravating_1' : circumstances;
+              const res = getArticle13Penalty(item.daysLate, item.tax > 0, item.tax, effCirc);
+              totalAdminPenalty += res.fine;
+
+              tableRows.push({
+                stt: stt++,
+                title: `${tType.name} - ${item.periodLabel}`,
+                detail: `Nộp riêng lẻ. ${res.label}. ${idx > 0 ? '[Áp dụng tình tiết tăng nặng vi phạm nhiều lần]' : ''} <em>(${res.article})</em>`,
+                amount: res.fine,
+                badge: 'Phạt VPHC Thuế'
+              });
+            });
+          }
+
+          if (groupTaxSum > 0) {
+            tableRows.push({
+              stt: stt++,
+              title: `Thuế ${tType.key.toUpperCase()} phát sinh phải nộp & Tiền chậm nộp`,
+              detail: `Thuế gốc phát sinh: <strong>${formatVND(groupTaxSum)}</strong> + Tiền chậm nộp (0,03%/ngày): <strong>${formatVND(groupInterestSum)}</strong> [${groupLateDetails.join('; ')}] <em>(K2 Đ59 Luật QLT 2019)</em>`,
+              amount: groupTaxSum + groupInterestSum,
+              badge: 'Thuế & Chậm nộp'
+            });
+          }
+        }
+      });
+
+      // -----------------------------------------------------------------------
+      // 2. XỬ LÝ TỜ KHAI & TIỀN LỆ PHÍ MÔN BÀI (NĐ 109/2013 & NĐ 02/2026)
+      // -----------------------------------------------------------------------
+      const lpmbDecls = Object.entries(state.lpmbDecl).filter(([_, v]) => v.checked).map(([y]) => Number(y));
+      if (lpmbDecls.length > 0) {
+        // Phạt theo từng tờ khai: Lần đầu cảnh cáo; từ lần 2 trở đi: cá nhân 500k-1tr -> Tổ chức gấp đôi = 1tr-2tr (TB 1.5tr)
+        lpmbDecls.forEach((y, idx) => {
+          const isFirst = idx === 0;
+          const fine = isFirst ? 0 : 1500000;
+          totalAdminPenalty += fine;
+          tableRows.push({
+            stt: stt++,
+            title: `Tờ khai Lệ phí Môn bài năm ${y}`,
+            detail: isFirst
+              ? `Khai chậm thời hạn lần đầu $\\rightarrow$ <strong>Phạt cảnh cáo (0 đồng)</strong>. <em>(K1 Đ16 NĐ 02/2026/NĐ-CP)</em>`
+              : `Khai chậm thời hạn từ lần thứ ${idx + 1} $\\rightarrow$ Mức phạt tổ chức gấp 2 lần cá nhân (Khung 1 - 2 triệu đồng, TB 1,5tr). <em>(K2 Đ16 & K1 Đ5 NĐ 02/2026/NĐ-CP)</em>`,
+            amount: fine,
+            badge: 'Phạt Phí, Lệ phí'
+          });
+        });
+      }
+
+      const lpmbFees = Object.entries(state.lpmbFee).filter(([_, v]) => v.checked).map(([y]) => Number(y));
+      if (lpmbFees.length > 0) {
+        let lpmbPrincipal = 0;
+        let lpmbInterest = 0;
+        const detailsList = [];
+        const subDateVN = formatDateVN(submitDate);
+        lpmbFees.forEach(y => {
+          const due = getLPMBDueDate(y);
+          const days = calcDaysLate(due, submitDate);
+          const startLateVN = getNextDayVN(due);
+          const interest = charterCapital * 0.0003 * days;
+          lpmbPrincipal += charterCapital;
+          lpmbInterest += interest;
+          detailsList.push(`Năm ${y}: gốc ${formatVND(charterCapital)} + chậm nộp ${days} ngày (từ ngày ${startLateVN} đến ngày ${subDateVN}) = ${formatVND(interest)}`);
+        });
+        totalTaxPrincipal += lpmbPrincipal;
+        totalLateInterest += lpmbInterest;
+
+        tableRows.push({
+          stt: stt++,
+          title: `Nợ Lệ phí Môn bài (${lpmbFees.length} năm: ${lpmbFees.join(', ')})`,
+          detail: `${detailsList.join('; ')}. Tính chậm nộp 0,03%/ngày. <em>(Điểm a K2 Đ59 Luật QLT 2019)</em>`,
+          amount: lpmbPrincipal + lpmbInterest,
+          badge: 'Lệ phí & Chậm nộp'
+        });
+      }
+
+      // -----------------------------------------------------------------------
+      // 3. XỬ LÝ BÁO CÁO TÀI CHÍNH (NĐ 41/2018/NĐ-CP LĨNH VỰC KẾ TOÁN)
+      // -----------------------------------------------------------------------
+      const bctcYears = Object.entries(state.bctc).filter(([_, v]) => v.checked).map(([y]) => Number(y));
+      if (bctcYears.length > 0) {
+        bctcYears.forEach(y => {
+          const due = getAnnualDueDate(y);
+          const days = calcDaysLate(due, submitDate);
+          // NĐ 41/2018/NĐ-CP (Điều 12): Chậm dưới 3 tháng: 5-10tr (TB 7.5tr); Chậm từ 3 tháng trở lên: 10-20tr (TB 15tr)
+          const fine = days >= 90 ? 15000000 : (days > 0 ? 7500000 : 0);
+          totalAdminPenalty += fine;
+          tableRows.push({
+            stt: stt++,
+            title: `Nộp chậm Báo cáo tài chính năm ${y}`,
+            detail: `Quá hạn ${days} ngày. Xử phạt lĩnh vực kế toán tách biệt với thuế (Khung ${days >= 90 ? '10 - 20tr, TB 15tr' : '5 - 10tr, TB 7,5tr'}). <em>(Đ12 NĐ 41/2018/NĐ-CP)</em>`,
+            amount: fine,
+            badge: 'Vi phạm Kế toán'
+          });
+        });
+      }
+
+      // -----------------------------------------------------------------------
+      // 4. XỬ LÝ VI PHẠM HÓA ĐƠN & KIỂM TRA THUẾ
+      // -----------------------------------------------------------------------
+      const invWrongMap = {
+        '1': { fine: 1000000, desc: 'Lập HĐ không đúng thời điểm 01 số HĐ (Khung 500k - 1,5tr | TB 1tr)' },
+        '2': { fine: 3500000, desc: 'Lập HĐ không đúng thời điểm từ 02 đến dưới 10 số HĐ (Khung 2 - 5tr | TB 3,5tr)' },
+        '3': { fine: 10000000, desc: 'Lập HĐ không đúng thời điểm từ 10 đến dưới 20 số HĐ (Khung 5 - 15tr | TB 10tr)' },
+        '4': { fine: 22500000, desc: 'Lập HĐ không đúng thời điểm từ 20 đến dưới 50 số HĐ (Khung 15 - 30tr | TB 22,5tr)' },
+        '5': { fine: 40000000, desc: 'Lập HĐ không đúng thời điểm từ 50 đến dưới 100 số HĐ (Khung 30 - 50tr | TB 40tr)' },
+        '6': { fine: 60000000, desc: 'Lập HĐ không đúng thời điểm từ 100 số HĐ trở lên (Khung 50 - 70tr | TB 60tr)' }
+      };
+      const invWrongVal = document.getElementById('invWrongTime').value;
+      if (invWrongVal !== '0') {
+        const item = invWrongMap[invWrongVal];
+        totalAdminPenalty += item.fine;
+        tableRows.push({
+          stt: stt++,
+          title: 'Vi phạm lập hóa đơn không đúng thời điểm',
+          detail: `${item.desc}. <em>(K2 Đ24 NĐ 125/2020 sửa đổi bởi NĐ 310/2025)</em>`,
+          amount: item.fine,
+          badge: 'Vi phạm Hóa đơn'
+        });
+      }
+
+      const invNotMap = {
+        '1': { fine: 1500000, desc: 'Không lập HĐ 01 số HĐ (Khung 1 - 2tr | TB 1,5tr)' },
+        '2': { fine: 6000000, desc: 'Không lập HĐ từ 02 đến dưới 10 số HĐ (Khung 2 - 10tr | TB 6tr)' },
+        '3': { fine: 20000000, desc: 'Không lập HĐ từ 10 đến dưới 20 số HĐ (Khung 10 - 30tr | TB 20tr)' },
+        '4': { fine: 40000000, desc: 'Không lập HĐ từ 20 đến dưới 50 số HĐ (Khung 30 - 50tr | TB 40tr)' },
+        '5': { fine: 70000000, desc: 'Không lập HĐ từ 50 số HĐ trở lên (Khung 60 - 80tr | TB 70tr)' }
+      };
+      const invNotVal = document.getElementById('invNotIssued').value;
+      if (invNotVal !== '0') {
+        const item = invNotMap[invNotVal];
+        totalAdminPenalty += item.fine;
+        tableRows.push({
+          stt: stt++,
+          title: 'Vi phạm không lập hóa đơn khi bán HHDV',
+          detail: `${item.desc}. <em>(K3 Đ24 NĐ 125/2020 sửa đổi bởi NĐ 310/2025)</em>`,
+          amount: item.fine,
+          badge: 'Vi phạm Hóa đơn'
+        });
+      }
+
+      if (document.getElementById('invSell').checked) {
+        totalAdminPenalty += 35000000;
+        tableRows.push({
+          stt: stt++,
+          title: 'Hành vi cho, bán hóa đơn',
+          detail: `Khung phạt tiền từ 20.000.000 đ đến 50.000.000 đ (Mức TB: 35tr). Lưu ý: Nếu từ 10 số HĐ đã ghi nội dung trở lên hoặc thu lợi từ 30tr có thể bị truy cứu TNHS theo Đ203 BLHS. <em>(Đ22 NĐ 125/2020 sửa đổi bởi NĐ 310/2025)</em>`,
+          amount: 35000000,
+          badge: 'Vi phạm Hóa đơn'
+        });
+      }
+
+      if (document.getElementById('invIllegalUse').checked) {
+        totalAdminPenalty += 35000000;
+        tableRows.push({
+          stt: stt++,
+          title: 'Sử dụng hóa đơn không hợp pháp / sử dụng không hợp pháp HĐ',
+          detail: `Khung phạt tiền từ 20.000.000 đ đến 50.000.000 đ (Mức TB: 35tr). <em>(Đ28 NĐ 125/2020)</em>`,
+          amount: 35000000,
+          badge: 'Vi phạm Hóa đơn'
+        });
+      }
+
+      const auditVal = document.getElementById('auditCompliance').value;
+      if (auditVal === '1') {
+        totalAdminPenalty += 3500000;
+        tableRows.push({
+          stt: stt++,
+          title: 'Không chấp hành quyết định kiểm tra thuế (Mức 1)',
+          detail: `Không nhận QĐ / Chậm chấp hành quá 03 ngày làm việc / Cung cấp tài liệu chậm quá 06 giờ làm việc (Khung 2 - 5tr | TB 3,5tr). <em>(Đ15 NĐ 125/2020)</em>`,
+          amount: 3500000,
+          badge: 'Kiểm tra thuế'
+        });
+      } else if (auditVal === '2') {
+        totalAdminPenalty += 7500000;
+        tableRows.push({
+          stt: stt++,
+          title: 'Không cung cấp sổ sách tài liệu / Vi phạm niêm phong (Mức 2)',
+          detail: `Khung phạt 5 - 10tr (TB 7,5tr) + Bị <strong>ấn định thuế</strong> theo điểm d K1 Đ50 Luật QLT 2019 (hoặc điểm d K2 Đ24 Luật QLT số 108/2025/QH15). <em>(Đ15 NĐ 125/2020)</em>`,
+          amount: 7500000,
+          badge: 'Kiểm tra & Ấn định'
+        });
+      }
+
+      // Lưu danh sách kết quả để phục vụ xuất Excel
+      lastCalculationRows = tableRows;
+
+      // -----------------------------------------------------------------------
+      // 5. CẬP NHẬT KPI & BẢNG CHI TIẾT
+      // -----------------------------------------------------------------------
+      const grandTotal = totalAdminPenalty + totalTaxPrincipal + totalLateInterest;
+      document.getElementById('kpiAdminPenalty').textContent = formatVND(totalAdminPenalty);
+      document.getElementById('kpiTaxAndLate').textContent = formatVND(totalTaxPrincipal + totalLateInterest);
+      document.getElementById('kpiLateSub').textContent = `Gốc: ${formatVND(totalTaxPrincipal)} | Chậm nộp: ${formatVND(totalLateInterest)}`;
+      document.getElementById('kpiGrandTotal').textContent = formatVND(grandTotal);
+      document.getElementById('tableGrandTotal').textContent = formatVND(grandTotal);
+
+      const tbody = document.getElementById('summaryTableBody');
+      if (tableRows.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4" class="py-10 px-4 text-center text-slate-400">
+              <i class="fa-solid fa-folder-open text-2xl mb-2 block"></i>
+              Chưa chọn hành vi vi phạm hoặc tờ khai nào còn thiếu. Vui lòng chọn ở cột bên trái hoặc bấm "Tự động gợi ý".
+            </td>
+          </tr>
+        `;
+      } else {
+        tbody.innerHTML = tableRows.map(r => `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="py-3 px-4 font-bold text-slate-500 align-top">${r.stt}</td>
+            <td class="py-3 px-3 align-top">
+              <div class="font-bold text-slate-800">${r.title}</div>
+              <span class="inline-block mt-1 px-2 py-0.5 text-[10px] font-semibold rounded bg-blue-50 text-blue-700 border border-blue-200">${r.badge}</span>
+            </td>
+            <td class="py-3 px-3 text-slate-600 leading-relaxed align-top">${r.detail.replace(/\$\\rightarrow\$/g, '&rarr;')}</td>
+            <td class="py-3 px-4 text-right font-bold text-slate-900 align-top whitespace-nowrap">${formatVND(r.amount)}</td>
+          </tr>
+        `).join('');
+      }
+
+      // -----------------------------------------------------------------------
+      // 6. RENDER CẢNH BÁO PHÁP LÝ & QUY TRÌNH THỦ TỤC
+      // -----------------------------------------------------------------------
+      renderAlertsAndProcedures(revenueStatus, totalTaxPrincipal, closedDate, submitDate);
+    }
+
+    function renderAlertsAndProcedures(revenueStatus, totalTaxPrincipal, closedDate, submitDate) {
+      const alertsBox = document.getElementById('legalAlertsContainer');
+      const alerts = [];
+
+      // Cảnh báo tạm hoãn xuất cảnh theo NĐ 49/2025/NĐ-CP
+      if (currentStatus === '06' && totalTaxPrincipal > 0) {
+        alerts.push(`
+          <div class="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-start gap-2.5">
+            <i class="fa-solid fa-plane-slash text-rose-600 text-base mt-0.5"></i>
+            <div>
+              <strong>Cảnh báo Tạm hoãn xuất cảnh (Khoản 3 Điều 3 NĐ 49/2025/NĐ-CP):</strong> Người đại diện theo pháp luật của DN trạng thái 06 có số tiền thuế nợ quá hạn và sau 30 ngày kể từ ngày CQT thông báo mà chưa nộp sẽ bị <strong>tạm hoãn xuất cảnh (không giới hạn mức nợ tối thiểu)</strong>.
+            </div>
+          </div>
+        `);
+      } else if (totalTaxPrincipal >= 500000000) {
+        alerts.push(`
+          <div class="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-start gap-2.5">
+            <i class="fa-solid fa-plane-slash text-rose-600 text-base mt-0.5"></i>
+            <div>
+              <strong>Cảnh báo Tạm hoãn xuất cảnh (Khoản 2 Điều 3 NĐ 49/2025/NĐ-CP):</strong> Doanh nghiệp thuộc diện cưỡng chế có nợ thuế từ <strong>500 triệu đồng trở lên</strong> quá hạn trên 120 ngày sẽ bị áp dụng tạm hoãn xuất cảnh đối với người đại diện pháp luật.
+            </div>
+          </div>
+        `);
+      }
+
+      // Cảnh báo kiểm tra quyết toán thuế
+      if (revenueStatus === 'no_rev') {
+        alerts.push(`
+          <div class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-start gap-2.5">
+            <i class="fa-solid fa-circle-check text-emerald-600 text-base mt-0.5"></i>
+            <div>
+              <strong>Miễn kiểm tra quyết toán thuế tại trụ sở:</strong> Doanh nghiệp chưa phát sinh doanh thu, chưa đăng ký sử dụng hóa đơn nên không phải kiểm tra quyết toán tại trụ sở khi chấm dứt hiệu lực MST <em>(Điểm b Khoản 1 Điều 72 Thông tư 80/2021/TT-BTC)</em>.
+            </div>
+          </div>
+        `);
+      } else {
+        alerts.push(`
+          <div class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5">
+            <i class="fa-solid fa-magnifying-glass-dollar text-amber-600 text-base mt-0.5"></i>
+            <div>
+              <strong>Bắt buộc kiểm tra/quyết toán thuế:</strong> Doanh nghiệp có phát sinh doanh thu và sử dụng hóa đơn bắt buộc phải kiểm tra/quyết toán thuế trước khi chấm dứt hiệu lực MST <em>(Điểm g Khoản 1 Điều 110 Luật QLT 2019; Khoản 3 Điều 22 Luật QLT 108/2025/QH15)</em>. Nếu bỏ địa chỉ lâu năm hoặc thay đổi địa giới hành chính có thể kiểm tra tại trụ sở Cơ quan Thuế; nếu mất sổ sách trên 10 năm sẽ bị <strong>ấn định thuế</strong>.
+            </div>
+          </div>
+        `);
+      }
+
+      alertsBox.innerHTML = alerts.join('');
+
+      // Render Procedural Roadmap
+      const procBox = document.getElementById('proceduralNotes');
+      procBox.innerHTML = `
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+          <div class="font-bold text-slate-800 mb-1"><i class="fa-solid fa-1 text-blue-600 mr-1.5"></i>Mở MST & Nộp hồ sơ điện tử</div>
+          <p>Đối với DN 06, CQT mở tạm MST để DN nộp bù các tờ khai thiếu. <strong>Mẹo tối ưu:</strong> Nộp tất cả tờ khai cùng một sắc thuế trong cùng 01 ngày để chỉ bị xử phạt 01 hành vi khung cao nhất.</p>
+        </div>
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+          <div class="font-bold text-slate-800 mb-1"><i class="fa-solid fa-2 text-blue-600 mr-1.5"></i>Lập Biên bản VPHC điện tử</div>
+          <p>Chậm nhất <strong>01 ngày làm việc</strong> kể từ ngày gửi thông báo chấp nhận hồ sơ khai thuế điện tử, công chức thuế lập và gửi 01 Biên bản VPHC điện tử cho NNT qua Cổng TTĐT <em>(K2 Đ36 NĐ 125/2020)</em>.</p>
+        </div>
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+          <div class="font-bold text-slate-800 mb-1"><i class="fa-solid fa-3 text-blue-600 mr-1.5"></i>Nộp tiền phạt, truy thu & chậm nộp</div>
+          <p>Sau khi nhận Quyết định xử phạt VPHC, NNT nộp đủ tiền phạt, tiền thuế truy thu và tiền chậm nộp 0,03%/ngày vào NSNN để hoàn tất nghĩa vụ tài chính.</p>
+        </div>
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+          <div class="font-bold text-slate-800 mb-1"><i class="fa-solid fa-4 text-blue-600 mr-1.5"></i>Khôi phục hoạt động hoặc Đóng MST (01)</div>
+          <p>Hoàn thành nghĩa vụ thuế/phạt, CQT ban hành Thông báo khôi phục MST (nếu kinh doanh lại) hoặc Thông báo chấm dứt hiệu lực MST về trạng thái 01 (nếu giải thể).</p>
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // PRESET SAMPLE CASES (TỪ TÀI LIỆU HƯỚNG DẪN CỤC THUẾ)
+    // =========================================================================
+    function loadSampleCase(caseNum) {
+      initEmptyState();
+      document.getElementById('invWrongTime').value = '0';
+      document.getElementById('invNotIssued').value = '0';
+      document.getElementById('invSell').checked = false;
+      document.getElementById('invIllegalUse').checked = false;
+      document.getElementById('auditCompliance').value = '0';
+      document.getElementById('circumstances').value = 'none';
+      document.getElementById('submitSameDay').checked = true;
+      document.getElementById('revenueStatus').value = 'no_rev';
+
+      if (caseNum === 1) {
+        // Tình huống 1: Công ty A - Trạng thái 03 từ 30/09/2024, nộp bù 15/04/2026
+        document.getElementById('taxCode').value = '0309876543';
+        document.getElementById('companyName').value = 'Công ty Cổ phần Đầu tư Thương mại A (Mẫu 1)';
+        setStatus('03');
+        document.getElementById('charterCapital').value = '3000000'; // 15 tỷ -> 3tr/năm
+        document.getElementById('establishedDate').value = '2022-01-15';
+        document.getElementById('closedDate').value = '2024-09-30';
+        document.getElementById('submitDate').value = '2026-04-15';
+
+        state.gtgt['2024-2'].checked = true;
+        state.gtgt['2024-3'].checked = true;
+        state.tndn['2024'].checked = true;
+        state.lpmbFee['2024'].checked = true;
+      } else if (caseNum === 2) {
+        // Tình huống 2: Công ty B - Thành lập 01/03/2023, đóng 06 từ 01/05/2024, nộp bù 15/04/2026
+        document.getElementById('taxCode').value = '0317654321';
+        document.getElementById('companyName').value = 'Công ty TNHH Sản xuất Kinh doanh B (Mẫu 2)';
+        setStatus('06');
+        document.getElementById('charterCapital').value = '2000000'; // 5 tỷ -> 2tr/năm
+        document.getElementById('establishedDate').value = '2023-03-01';
+        document.getElementById('closedDate').value = '2024-05-01';
+        document.getElementById('submitDate').value = '2026-04-15';
+
+        [1, 2, 3, 4].forEach(q => {
+          state.gtgt[`2024-${q}`].checked = true;
+          state.gtgt[`2025-${q}`].checked = true;
+        });
+        state.tndn['2024'].checked = true;
+        state.tndn['2025'].checked = true;
+        state.lpmbDecl['2024'].checked = true;
+        state.lpmbFee['2024'].checked = true;
+        state.lpmbFee['2025'].checked = true;
+      }
+
+      renderAllDeclarationLists();
+      recalculate();
+    }
+
+    function resetAll() {
+      initEmptyState();
+      document.getElementById('taxCode').value = '';
+      document.getElementById('companyName').value = '';
+      document.getElementById('invWrongTime').value = '0';
+      document.getElementById('invNotIssued').value = '0';
+      document.getElementById('invSell').checked = false;
+      document.getElementById('invIllegalUse').checked = false;
+      document.getElementById('auditCompliance').value = '0';
+      renderAllDeclarationLists();
+      recalculate();
+    }
+
+    // =========================================================================
+    // XUẤT FILE EXCEL CHUẨN (.XLSX) QUA SHEETJS
+    // =========================================================================
+    function exportExcel() {
+      if (typeof XLSX === 'undefined') {
+        alert('Thư viện xuất Excel đang tải, vui lòng thử lại sau giây lát.');
+        return;
+      }
+
+      const taxCode = document.getElementById('taxCode').value.trim() || 'Chua_nhap_MST';
+      const companyName = document.getElementById('companyName').value.trim() || 'Chưa nhập tên công ty';
+      const closedDateStr = document.getElementById('closedDate').value;
+      const submitDateStr = document.getElementById('submitDate').value;
+
+      const sheetData = [
+        ['BẢNG TỔNG HỢP DỰ TOÁN XỬ PHẠT VI PHẠM HÀNH CHÍNH VỀ THUẾ & HÓA ĐƠN'],
+        ['Mã số thuế:', taxCode, 'Trạng thái MST:', `Trạng thái ${currentStatus}`],
+        ['Tên công ty:', companyName, 'Ngày đóng MST / Ngày nộp bù:', `${closedDateStr} / ${submitDateStr}`],
+        [],
+        ['STT', 'Nhóm hành vi / Kỳ thuế vi phạm', 'Phân loại', 'Chi tiết tính toán & Căn cứ pháp lý', 'Số tiền (VNĐ)']
+      ];
+
+      let grandTotal = 0;
+      lastCalculationRows.forEach(r => {
+        grandTotal += r.amount;
+        const plainDetail = r.detail
+          .replace(/<[^>]*>/g, '')
+          .replace(/\$\\rightarrow\$/g, '->')
+          .replace(/&rarr;/g, '->');
+        sheetData.push([r.stt, r.title, r.badge, plainDetail, Math.round(r.amount)]);
+      });
+
+      sheetData.push([]);
+      sheetData.push(['', 'TỔNG CỘNG NGHĨA VỤ TÀI CHÍNH PHẢI NỘP NSNN (VNĐ)', '', '', Math.round(grandTotal)]);
+
+      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+      // Định dạng độ rộng các cột
+      ws['!cols'] = [
+        { wch: 6 },
+        { wch: 42 },
+        { wch: 20 },
+        { wch: 68 },
+        { wch: 20 }
+      ];
+
+      // Định dạng số có dấu phân cách hàng nghìn cho cột Số tiền (cột E)
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      for (let R = 5; R <= range.e.r; ++R) {
+        const cellAddr = XLSX.utils.encode_cell({ r: R, c: 4 });
+        if (ws[cellAddr] && typeof ws[cellAddr].v === 'number') {
+          ws[cellAddr].z = '#,##0';
+        }
+      }
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, `DuToan_DN_${currentStatus}`);
+
+      const safeFileName = `DuToan_XuPhat_DN${currentStatus}_${taxCode.replace(/[^a-zA-Z0-9]/g, '')}.xlsx`;
+      XLSX.writeFile(wb, safeFileName);
+    }
+
+    // =========================================================================
+    // INITIALIZATION ON LOAD
+    // =========================================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      loadSampleCase(2); // Mặc định hiển thị Tình huống 2 (DN 06) để người dùng thấy ngay cách tính
+    });
+  </script>
+</body>
+</html>
